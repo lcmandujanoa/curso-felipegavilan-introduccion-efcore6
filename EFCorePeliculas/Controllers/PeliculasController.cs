@@ -54,7 +54,7 @@ namespace EFCorePeliculas.Controllers
                 return NotFound();
             }
 
-            pelicula.Cines = pelicula.Cines.DistinctBy(x => x.Id).ToList();
+            pelicula.Cines = pelicula.Cines.DistinctBy(x => x.Id).ToList(); 
 
             return pelicula;
         }
