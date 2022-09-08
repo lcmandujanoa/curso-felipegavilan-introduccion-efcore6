@@ -34,36 +34,84 @@ namespace EFCorePeliculas.Controllers
             return genero;
         }
 
-        [HttpGet("primer")]
-        public async Task<ActionResult<Genero>> Primer()
+        [HttpPost]
+        public async Task<ActionResult> Post(Genero genero)
         {
-            var genero = await context.Generos.FirstOrDefaultAsync(g => g.Nombre.StartsWith("C"));
+            var estatus1 = context.Entry(genero).State;
+            context.Add(genero);
+            var estatus2 = context.Entry(genero).State;
+            await context.SaveChangesAsync();
+            var estatus3 = context.Entry(genero).State;
+            return Ok();
+        }
+
+        [HttpPost("varios")]
+        public async Task<ActionResult> Post(Genero[] generos)
+        { 
+            context.AddRange(generos);
+            await context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("agregar2")]
+        public async Task<ActionResult> Agregar2(int id)
+        {
+            var genero = await context.Generos.AsTracking().FirstOrDefaultAsync(g => g.Identificador == id);
 
             if (genero is null)
             {
                 return NotFound();
             }
 
-            return genero;
+            genero.Nombre += " 2";
+            await context.SaveChangesAsync();
+            return Ok();
         }
 
-        [HttpGet("filtrar")]
-        public async Task<IEnumerable<Genero>> Filtrar(string nombre)
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult> Delete(int id)
         {
-            return await context.Generos
-                .Where(g => g.Nombre.Contains(nombre))
-                .ToListAsync();
+            var genero = await context.Generos.FirstOrDefaultAsync(g => g.Identificador == id);
+
+            if (genero is null)
+            {
+                return NotFound();
+            }
+
+            context.Remove(genero);
+            await context.SaveChangesAsync();
+            return Ok();
         }
 
-        [HttpGet("paginacion")]
-        public async Task<ActionResult<IEnumerable<Genero>>> GetPaginacion(int pagina = 1)
+        [HttpDelete("borradoSuave/{id:int}")]
+        public async Task<ActionResult> DeleteSuave(int id)
         {
-            var cantidadRegistrosPorPagina = 2;
-            var generos = await context.Generos
-                .Skip((pagina-1)*cantidadRegistrosPorPagina)
-                .Take(cantidadRegistrosPorPagina)
-                .ToListAsync();
-            return generos;
+            var genero = await context.Generos.AsTracking().FirstOrDefaultAsync(g => g.Identificador == id);
+
+            if (genero is null)
+            {
+                return NotFound();
+            }
+
+            genero.EstaBorrado = true;
+            await context.SaveChangesAsync();
+            return Ok();
+        }
+
+
+        [HttpPost("Restaurar/{id:int}")]
+        public async Task<ActionResult> Restaurar(int id)
+        {
+            var genero = await context.Generos.AsTracking().IgnoreQueryFilters().FirstOrDefaultAsync(g => g.Identificador == id);
+
+            if (genero is null)
+            {
+                return NotFound();
+            }
+
+            genero.EstaBorrado = false;
+            await context.SaveChangesAsync();
+            return Ok();
         }
     }
 }
