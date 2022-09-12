@@ -10,6 +10,26 @@ namespace EFCorePeliculas.Entidades.Configuraciones
             builder.Property(prop => prop.Nombre)
                 .HasMaxLength(150)
                 .IsRequired();
+
+            builder.HasOne(c => c.CineOferta)
+                .WithOne()
+                .HasForeignKey<CineOferta>(co => co.CineId);
+
+            builder.HasMany(c => c.SalasDeCine)
+                .WithOne(s => s.Cine)
+                .HasForeignKey(s => s.ElCine)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(c => c.CineDetalle)
+                .WithOne(cd => cd.Cine)
+                .HasForeignKey<CineDetalle>(cd => cd.Id);
+
+            builder.OwnsOne(c => c.Direccion, dir =>
+            {
+                dir.Property(d => d.Calle).HasColumnName("Calle");
+                dir.Property(d => d.Provincia).HasColumnName("Provincia");
+                dir.Property(d => d.Pais).HasColumnName("Pais");
+            });
         }
     }
 }

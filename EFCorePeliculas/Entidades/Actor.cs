@@ -22,5 +22,31 @@ namespace EFCorePeliculas.Entidades
         //[Column(TypeName = "Date")]
         public DateTime? FechaNacimiento { get; set; }
         public HashSet<PeliculaActor> PeliculasActores { get; set; }
+        public string FotoURL { get; set; }
+
+        [NotMapped]
+        public int? Edad
+        {
+            get
+            {
+                if (!FechaNacimiento.HasValue)
+                {
+                    return null;
+                }
+
+                var fechaNacimiento = FechaNacimiento.Value;
+                var edad = DateTime.Today.Year - fechaNacimiento.Year;
+
+                if(new DateTime(DateTime.Today.Year, fechaNacimiento.Month, fechaNacimiento.Day) > DateTime.Today)
+                {
+                    edad--;
+                }
+
+                return edad;
+            }
+        }
+
+        public Direccion DireccionHogar { get; set; }
+        public Direccion BillingAddress { get; set; }
     }
 }

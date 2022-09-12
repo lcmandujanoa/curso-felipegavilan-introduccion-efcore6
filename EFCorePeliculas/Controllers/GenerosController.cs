@@ -18,30 +18,47 @@ namespace EFCorePeliculas.Controllers
         [HttpGet]
         public async Task<IEnumerable<Genero>> Get()
         {
-            return await context.Generos.OrderBy(g => g.Nombre).ToListAsync();
+            context.Logs.Add(new Log { 
+                Id = Guid.NewGuid(),
+                Mensaje = "Ejecutando el método GenerosController.Get"
+            });
+            await context.SaveChangesAsync();
+            return await context.Generos.OrderByDescending(g => EF.Property<DateTime>(g, "FechaCreacion")).ToListAsync();
         }
 
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Genero>> Get(int id)
         {
-            var genero = await context.Generos.FirstOrDefaultAsync(g => g.Identificador == id);
+            var genero = await context.Generos.AsTracking().FirstOrDefaultAsync(g => g.Identificador == id);
 
             if(genero is null)
             {
                 return NotFound();
             }
 
-            return genero;
+            var fechaCreacion = context.Entry(genero).Property<DateTime>("FechaCreacion").CurrentValue;
+
+            return Ok(new
+            {
+                Id = genero.Identificador,
+                NoContent = genero.Nombre,
+                fechaCreacion
+            });
         }
 
         [HttpPost]
         public async Task<ActionResult> Post(Genero genero)
         {
-            var estatus1 = context.Entry(genero).State;
+            var existeGeneroConNombre = await context.Generos.AnyAsync(g => g.Nombre == genero.Nombre);
+
+            if (existeGeneroConNombre)
+            {
+                return BadRequest("Ya existe un género con este nombre: " + genero.Nombre);
+            }
+
             context.Add(genero);
-            var estatus2 = context.Entry(genero).State;
-            await context.SaveChangesAsync();
-            var estatus3 = context.Entry(genero).State;
+            await context.SaveChangesAsync();            
+
             return Ok();
         }
 
