@@ -49,7 +49,8 @@ namespace EFCorePeliculas.Controllers
             }
 
             actorDB = mapper.Map(actorCreacionDTO, actorDB);
-            await context.SaveChangesAsync();
+            var entry = context.Entry(actorDB);
+            //await context.SaveChangesAsync();
             return Ok();
         }
 

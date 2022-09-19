@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EFCorePeliculas.Entidades
 {
-    //[Index(nameof(Nombre), IsUnique = true)]
-    public class Genero
+    public class Genero: EntidadAuditable
     { 
         public int Identificador { get; set; }
+        [ConcurrencyCheck]
         public string Nombre { get; set; }
         public bool EstaBorrado { get; set; }
         public HashSet<Pelicula> Peliculas { get; set; }

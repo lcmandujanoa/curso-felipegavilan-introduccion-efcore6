@@ -1,5 +1,6 @@
 ﻿using EFCorePeliculas.Entidades;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace EFCorePeliculas.Controllers
@@ -26,10 +27,56 @@ namespace EFCorePeliculas.Controllers
             return await context.Generos.OrderByDescending(g => EF.Property<DateTime>(g, "FechaCreacion")).ToListAsync();
         }
 
+        [HttpGet("procedimiento_almacenado/{id:int}")]
+        public async Task<ActionResult<Genero>> GetSP(int id)
+        {
+            var generos = context.Generos.FromSqlInterpolated($"EXEC Generos_ObtenerPorId {id}")
+                                        .IgnoreQueryFilters()
+                                        .AsAsyncEnumerable();
+            await foreach (var genero in generos)
+            {
+                return genero;
+            }
+
+            return NotFound();
+        }
+
+        [HttpPost("Procedimiento_almacenado")]
+        public async Task<ActionResult> PostSP(Genero genero)
+        {
+            var existeGeneroConNombre = await context.Generos.AnyAsync(g => g.Nombre == genero.Nombre);
+
+            if (existeGeneroConNombre)
+            {
+                return BadRequest("Ya existe un género con este nombre: " + genero.Nombre);
+            }
+
+            var outputId = new SqlParameter();
+            outputId.ParameterName = "@id";
+            outputId.SqlDbType = System.Data.SqlDbType.Int;
+            outputId.Direction = System.Data.ParameterDirection.Output;
+
+            await context.Database.ExecuteSqlRawAsync("EXEC Generos_Insertar @nombre = {0}, @id = {1} OUTPUT",
+                genero.Nombre, outputId);
+
+            var id = (int)outputId.Value;
+            return Ok(id);
+        }
+
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Genero>> Get(int id)
         {
-            var genero = await context.Generos.AsTracking().FirstOrDefaultAsync(g => g.Identificador == id);
+            //var genero = await context.Generos.AsTracking().FirstOrDefaultAsync(g => g.Identificador == id);
+
+            //var genero = await context.Generos.FromSqlRaw(@"SELECT * 
+            //                                                FROM Generos
+            //                                                WHERE Identificador = {0}", id)
+            //                                    .IgnoreQueryFilters()
+            //                                    .FirstOrDefaultAsync();
+
+            var genero = await context.Generos.FromSqlInterpolated($"SELECT * FROM Generos WHERE Identificador = {id}")
+                                                .IgnoreQueryFilters()
+                                                .FirstOrDefaultAsync();
 
             if(genero is null)
             {
@@ -56,7 +103,13 @@ namespace EFCorePeliculas.Controllers
                 return BadRequest("Ya existe un género con este nombre: " + genero.Nombre);
             }
 
-            context.Add(genero);
+            //context.Add(genero);
+
+            //context.Entry(genero).State = EntityState.Added;
+
+            await context.Database.ExecuteSqlInterpolatedAsync($@"Insert into Generos(Nombre)
+                                                                    Values ({genero.Nombre})");
+
             await context.SaveChangesAsync();            
 
             return Ok();
@@ -66,6 +119,14 @@ namespace EFCorePeliculas.Controllers
         public async Task<ActionResult> Post(Genero[] generos)
         { 
             context.AddRange(generos);
+            await context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPut]
+        public async Task<ActionResult> Put(Genero genero)
+        {
+            context.Update(genero);
             await context.SaveChangesAsync();
             return Ok();
         }
@@ -128,6 +189,24 @@ namespace EFCorePeliculas.Controllers
 
             genero.EstaBorrado = false;
             await context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("concurrency_token")]
+        public async Task<ActionResult> ConcurrencyToken()
+        {
+            var generoId = 1;
+
+            // Felipe lee el registro de la BD.
+            var genero = await context.Generos.AsTracking().FirstOrDefaultAsync(g => g.Identificador == generoId);
+            genero.Nombre = "Felipe estuvo aquí";
+
+            // Claudia actualiza el registro en la BD.
+            await context.Database.ExecuteSqlInterpolatedAsync(@$"UPDATE Generos SET Nombre = 'Claudia estuvo aquí' 
+                                                        WHERE Identificador = {generoId}");
+            // Felipe intenta actualizar.
+            await context.SaveChangesAsync();
+
             return Ok();
         }
     }

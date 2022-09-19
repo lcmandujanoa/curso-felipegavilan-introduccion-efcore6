@@ -1,7 +1,9 @@
 ﻿using EFCorePeliculas.Entidades;
 using EFCorePeliculas.Entidades.Configuraciones;
+using EFCorePeliculas.Entidades.Funciones;
 using EFCorePeliculas.Entidades.Seeding;
 using EFCorePeliculas.Entidades.SinLlaves;
+using EFCorePeliculas.Servicios;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -9,8 +11,44 @@ namespace EFCorePeliculas
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions options) : base(options)
+        private readonly IServicioUsuario servicioUsuario;
+
+        public ApplicationDbContext(DbContextOptions options,
+                                    IServicioUsuario servicioUsuario,
+                                    IEventosDbContext eventosDbContext) : base(options)
         {
+            this.servicioUsuario = servicioUsuario;
+            if (eventosDbContext is not null)
+            {
+                //ChangeTracker.Tracked += eventosDbContext.ManejarTracked;
+                //ChangeTracker.StateChanged += eventosDbContext.ManejarStateChange;
+                SavingChanges += eventosDbContext.ManejarSavingChanges;
+                SavedChanges += eventosDbContext.ManejarSavedChanges;
+                SaveChangesFailed += eventosDbContext.ManejarSaveChangesFailed;
+            }
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ProcesarSalvado();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ProcesarSalvado()
+        {
+            foreach (var item in ChangeTracker.Entries().Where(e => e.State == EntityState.Added && e.Entity is EntidadAuditable))
+            {
+                var entidad = item.Entity as EntidadAuditable;
+                entidad.UsuarioCreacion = servicioUsuario.ObtenerUsuarioId();
+                entidad.UsuarioModificacion = servicioUsuario.ObtenerUsuarioId();
+            }
+
+            foreach (var item in ChangeTracker.Entries().Where(e => e.State == EntityState.Modified && e.Entity is EntidadAuditable))
+            {
+                var entidad = item.Entity as EntidadAuditable;
+                entidad.UsuarioModificacion = servicioUsuario.ObtenerUsuarioId();
+                item.Property(nameof(entidad.UsuarioCreacion)).IsModified = false;
+            }
         }
 
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -26,13 +64,20 @@ namespace EFCorePeliculas
 
             SeedingModuloConsulta.Seed(modelBuilder);
             SeedingPersonaMensaje.Seed(modelBuilder);
+            SeedingFacturas.Seed(modelBuilder);
+
+            Escalares.RegistrarFunciones(modelBuilder);
+
+            modelBuilder.HasSequence<int>("NumeroFactura", "factura");
 
             //modelBuilder.Entity<Log>().Property(l => l.Id).ValueGeneratedNever();
             //modelBuilder.Ignore<Direccion>();
 
             modelBuilder.Entity<CineSinUbicacion>().HasNoKey().ToSqlQuery("SELECT Id, Nombre FROM Cines").ToView(null);
 
-            modelBuilder.Entity<PeliculaConConteos>().HasNoKey().ToView("PeliculasConConteos");
+            modelBuilder.Entity<PeliculaConConteos>().HasNoKey().ToTable(name: null);
+
+            modelBuilder.HasDbFunction(() => PeliculaConConteos(0));
 
             foreach (var tipoEntidad in modelBuilder.Model.GetEntityTypes())
             {
@@ -72,6 +117,17 @@ namespace EFCorePeliculas
             modelBuilder.Entity<PeliculaAlquilable>().HasData(pelicula1);
         }
 
+        [DbFunction]
+        public int FacturaDetalleSuma(int facturaId)
+        {
+            return 0;
+        }
+
+        public IQueryable<PeliculaConConteos> PeliculaConConteos(int peliculaId)
+        {
+            return FromExpression(() => PeliculaConConteos(peliculaId));
+        }
+
         public DbSet<Genero> Generos { get; set; }
         public DbSet<Actor> Actores { get; set; }
         public DbSet<Cine> Cines { get; set; }
@@ -86,5 +142,7 @@ namespace EFCorePeliculas
         public DbSet<CineDetalle> CineDetalle { get; set; }
         public DbSet<Pago> Pagos { get; set; }
         public DbSet<Producto> Productos { get; set; }
+        public DbSet<Factura> Facturas { get; set; }
+        public DbSet<FacturaDetalle> FacturaDetalles { get; set; }
     }
 }

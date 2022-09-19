@@ -1,4 +1,5 @@
 using EFCorePeliculas;
+using EFCorePeliculas.Servicios;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -19,6 +20,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(opciones =>
         //opciones.UseLazyLoadingProxies();
     }
 );
+
+builder.Services.AddScoped<IServicioUsuario, ServicioUsuario>();
+builder.Services.AddScoped<IEventosDbContext, EventosDbContext>();
+builder.Services.AddScoped<IActualizadorObservableCollection, ActualizadorObservableCollection>();
+
 builder.Services.AddAutoMapper(typeof(Program));
 
 var app = builder.Build();
