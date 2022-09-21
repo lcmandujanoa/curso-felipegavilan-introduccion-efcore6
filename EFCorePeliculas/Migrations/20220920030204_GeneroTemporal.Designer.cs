@@ -4,6 +4,7 @@ using EFCorePeliculas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 
@@ -12,9 +13,10 @@ using NetTopologySuite.Geometries;
 namespace EFCorePeliculas.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220920030204_GeneroTemporal")]
+    partial class GeneroTemporal
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,16 +213,16 @@ namespace EFCorePeliculas.Migrations
                         {
                             Id = 2,
                             CineId = 4,
-                            FechaFin = new DateTime(2022, 9, 25, 0, 0, 0, 0, DateTimeKind.Local),
-                            FechaInicio = new DateTime(2022, 9, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            FechaFin = new DateTime(2022, 9, 24, 0, 0, 0, 0, DateTimeKind.Local),
+                            FechaInicio = new DateTime(2022, 9, 19, 0, 0, 0, 0, DateTimeKind.Local),
                             PorcentajeDescuento = 15m
                         },
                         new
                         {
                             Id = 1,
                             CineId = 1,
-                            FechaFin = new DateTime(2022, 9, 27, 0, 0, 0, 0, DateTimeKind.Local),
-                            FechaInicio = new DateTime(2022, 9, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            FechaFin = new DateTime(2022, 9, 26, 0, 0, 0, 0, DateTimeKind.Local),
+                            FechaInicio = new DateTime(2022, 9, 19, 0, 0, 0, 0, DateTimeKind.Local),
                             PorcentajeDescuento = 10m
                         });
                 });
@@ -233,18 +235,8 @@ namespace EFCorePeliculas.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<DateTime>("Desde")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Desde");
-
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("date");
-
-                    b.Property<DateTime>("Hasta")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Hasta");
 
                     b.Property<int>("NumeroFactura")
                         .ValueGeneratedOnAdd()
@@ -258,19 +250,7 @@ namespace EFCorePeliculas.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Facturas", (string)null);
-
-                    b.ToTable(tb => tb.IsTemporal(ttb =>
-                        {
-                            ttb.UseHistoryTable("FacturasHistorico");
-                            ttb
-                                .HasPeriodStart("Desde")
-                                .HasColumnName("Desde");
-                            ttb
-                                .HasPeriodEnd("Hasta")
-                                .HasColumnName("Hasta");
-                        }
-                    ));
+                    b.ToTable("Facturas");
 
                     b.HasData(
                         new
