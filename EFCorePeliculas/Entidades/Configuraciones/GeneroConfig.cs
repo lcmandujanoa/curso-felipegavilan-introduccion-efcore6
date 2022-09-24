@@ -12,8 +12,8 @@ namespace EFCorePeliculas.Entidades.Configuraciones
                 opciones.IsTemporal();
             });
 
-            builder.Property("PeriodStart").HasColumnType("datetime2");
-            builder.Property("PeriodEnd").HasColumnType("datetime2");
+            builder.Property<DateTime>("PeriodStart").HasColumnType("datetime2");
+            builder.Property<DateTime>("PeriodEnd").HasColumnType("datetime2");
 
             builder.HasKey(prop => prop.Identificador);
             builder.Property(prop => prop.Nombre)
